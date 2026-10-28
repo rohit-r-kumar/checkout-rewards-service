@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id        String     @id @default(cuid())
+  sku       String     @unique
+  name      String
+  priceMinor Int       @map("price_minor")
+  inventory Int
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  cartItems CartItem[]
+  orderItems OrderItem[]
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  status    String     @default("OPEN")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     CartItem[]
+  order     Order?
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([cartId, productId])
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  cartId        String      @unique
+  subtotalMinor Int         @map("subtotal_minor")
+  discountMinor Int         @map("discount_minor")
+  totalMinor    Int         @map("total_minor")
+  couponCode    String?
+  status        String      @default("PAID")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  cart          Cart        @relation(fields: [cartId], references: [id], onDelete: Restrict)
+  items         OrderItem[]
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String
+  productId     String
+  productSku    String
+  productName   String
+  unitPriceMinor Int      @map("unit_price_minor")
+  quantity      Int
+  lineTotalMinor Int      @map("line_total_minor")
+  createdAt     DateTime @default(now())
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+}
+
+model Coupon {
+  code            String       @id
+  milestone       Int          @unique
+  discountPercent Int          @map("discount_percent")
+  status          String       @default("AVAILABLE")
+  createdAt       DateTime     @default(now())
+  redeemedAt      DateTime?
+  redeemedOrderId String?      @unique
+}
+
+model CheckoutRequest {
+  requestKey      String   @id
+  cartId          String
+  couponCode      String?
+  requestHash     String
+  responseStatus  Int
+  responsePayload String
+  createdAt       DateTime @default(now())
+}

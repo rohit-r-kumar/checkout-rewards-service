@@ -1,0 +1,137 @@
+openapi: 3.0.3
+info:
+  title: Checkout and Rewards Service
+  version: 1.0.0
+  description: API for carts, checkout, orders, coupons, and summary reporting.
+servers:
+  - url: http://localhost:3000
+paths:
+  /api/products:
+    get:
+      summary: List available products.
+      responses:
+        '200':
+          description: Product list.
+  /api/carts:
+    post:
+      summary: Create a cart.
+      responses:
+        '201':
+          description: Created cart.
+  /api/carts/{cartId}:
+    get:
+      summary: Retrieve a cart and its items.
+      parameters:
+        - in: path
+          name: cartId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Cart details.
+  /api/carts/{cartId}/items:
+    post:
+      summary: Add a product to the cart.
+      parameters:
+        - in: path
+          name: cartId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId, quantity]
+              properties:
+                productId: { type: string }
+                quantity: { type: integer, minimum: 1 }
+      responses:
+        '201':
+          description: Item added.
+  /api/carts/{cartId}/items/{productId}:
+    patch:
+      summary: Update cart item quantity.
+      parameters:
+        - in: path
+          name: cartId
+          required: true
+          schema: { type: string }
+        - in: path
+          name: productId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Item updated.
+    delete:
+      summary: Remove a product from the cart.
+      parameters:
+        - in: path
+          name: cartId
+          required: true
+          schema: { type: string }
+        - in: path
+          name: productId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Item removed.
+  /api/carts/{cartId}/checkout:
+    post:
+      summary: Checkout a cart using an idempotency key and optional coupon.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                couponCode:
+                  type: string
+      responses:
+        '200':
+          description: Successful checkout result.
+        '409':
+          description: Key reused for a different request or cart already checked out.
+  /api/orders/{orderId}:
+    get:
+      summary: Fetch an order snapshot.
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Order snapshot.
+  /api/admin/coupons/generate:
+    post:
+      summary: Generate eligible coupons for completed order milestones.
+      description: Administrative endpoint; authentication is intentionally omitted for this assignment.
+      responses:
+        '200':
+          description: Coupon generation result.
+  /api/admin/reports/summary:
+    get:
+      summary: Return report totals for successful orders and coupons.
+      description: Administrative endpoint; read-only and should not mutate state.
+      responses:
+        '200':
+          description: Summary of revenue, discounts, and coupon state.
